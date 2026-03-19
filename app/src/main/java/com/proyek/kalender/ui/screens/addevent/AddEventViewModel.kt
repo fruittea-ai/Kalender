@@ -55,6 +55,7 @@ class AddEventViewModel @Inject constructor(
                 val newEvent = Event(
                     id = UUID.randomUUID().toString(),
                     title = currentState.title,
+                    date = currentState.date,
                     time = currentState.time,
                     location = currentState.location,
                     category = currentState.selectedCategory

@@ -35,6 +35,7 @@ class EventRepositoryImpl(
         return Event(
             id = id,
             title = title,
+            date = date,
             time = time,
             location = location,
             category = EventCategory.valueOf(category),
@@ -47,11 +48,11 @@ class EventRepositoryImpl(
         return EventEntity(
             id = id,
             title = title,
-            date = "", // Nanti kita bisa tambahkan properti date di Event.kt
+            date = date,
             time = time,
             location = location,
             category = category.name,
-            isCompleted = false // Ganti dengan event.isCompleted jika sudah ditambah di model
+            isCompleted = false
         )
     }
 }
