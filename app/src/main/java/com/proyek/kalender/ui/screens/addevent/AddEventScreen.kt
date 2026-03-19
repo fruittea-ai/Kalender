@@ -6,26 +6,23 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.proyek.kalender.domain.model.EventCategory
 import com.proyek.kalender.ui.components.EditorialTextField
-import androidx.hilt.navigation.compose.hiltViewModel
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddEventScreen(
     modifier: Modifier = Modifier,
@@ -35,12 +32,72 @@ fun AddEventScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val scrollState = rememberScrollState()
 
-    // Navigasi otomatis kembali jika penyimpanan berhasil
+    // State untuk mengontrol visibilitas dialog
+    var showDatePicker by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
+
+    // State bawaan Material 3 untuk picker
+    val datePickerState = rememberDatePickerState()
+    val timePickerState = rememberTimePickerState()
+
     LaunchedEffect(uiState.isSavedSuccess) {
         if (uiState.isSavedSuccess) {
             viewModel.resetSaveState()
             onNavigateBack()
         }
+    }
+
+    // --- Dialog Date Picker ---
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let { millis ->
+                        // Format millis menjadi string tanggal yang rapi (contoh: 19 Mar 2026)
+                        val formattedDate = SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(Date(millis))
+                        viewModel.onDateChange(formattedDate)
+                    }
+                    showDatePicker = false
+                }) {
+                    Text("OK", color = Color(0xFF4956B4))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text("Cancel", color = Color(0xFF302E56))
+                }
+            },
+            colors = DatePickerDefaults.colors(containerColor = Color(0xFFFCF8FF))
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
+    // --- Dialog Time Picker ---
+    if (showTimePicker) {
+        AlertDialog(
+            onDismissRequest = { showTimePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    // Format jam dan menit agar selalu 2 digit (contoh: 09:05)
+                    val formattedTime = String.format(Locale.getDefault(), "%02d:%02d", timePickerState.hour, timePickerState.minute)
+                    viewModel.onTimeChange(formattedTime)
+                    showTimePicker = false
+                }) {
+                    Text("OK", color = Color(0xFF4956B4))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTimePicker = false }) {
+                    Text("Cancel", color = Color(0xFF302E56))
+                }
+            },
+            text = {
+                TimePicker(state = timePickerState)
+            },
+            containerColor = Color(0xFFFCF8FF)
+        )
     }
 
     Column(
@@ -58,7 +115,7 @@ fun AddEventScreen(
             color = Color(0xFF302E56)
         )
 
-        Spacer(modifier = Modifier.height(32.dp)) // spacing-10 / spacing-12 per DESIGN.md
+        Spacer(modifier = Modifier.height(32.dp))
 
         // Judul Acara
         EditorialTextField(
@@ -66,8 +123,6 @@ fun AddEventScreen(
             onValueChange = viewModel::onTitleChange,
             label = "Event Title"
         )
-
-        // Error message jika judul kosong
         if (uiState.errorMessage != null) {
             Text(
                 text = uiState.errorMessage!!,
@@ -79,7 +134,7 @@ fun AddEventScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Kategori (Selection Chips)
+        // Kategori
         Text(text = "Category", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF302E56))
         Spacer(modifier = Modifier.height(12.dp))
         Row(
@@ -91,10 +146,7 @@ fun AddEventScreen(
                 Box(
                     modifier = Modifier
                         .clip(CircleShape)
-                        .background(
-                            if (isSelected) Color(0xFF4956B4) // Primary
-                            else Color(0xFFF6F2FF) // surface_container_low
-                        )
+                        .background(if (isSelected) Color(0xFF4956B4) else Color(0xFFF6F2FF))
                         .clickable { viewModel.onCategorySelect(category) }
                         .padding(horizontal = 16.dp, vertical = 8.dp)
                 ) {
@@ -109,23 +161,31 @@ fun AddEventScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Date & Time
+        // Date & Time menggunakan Overlay Transparan untuk memicu Dialog
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            EditorialTextField(
-                value = uiState.date,
-                onValueChange = viewModel::onDateChange,
-                label = "Date",
-                modifier = Modifier.weight(1f)
-            )
-            EditorialTextField(
-                value = uiState.time,
-                onValueChange = viewModel::onTimeChange,
-                label = "Time",
-                modifier = Modifier.weight(1f)
-            )
+            Box(modifier = Modifier.weight(1f)) {
+                EditorialTextField(
+                    value = uiState.date,
+                    onValueChange = {},
+                    label = "Date",
+                    modifier = Modifier.fillMaxWidth()
+                )
+                // Overlay transparan menutupi TextField untuk menangkap klik
+                Box(modifier = Modifier.matchParentSize().clickable { showDatePicker = true })
+            }
+
+            Box(modifier = Modifier.weight(1f)) {
+                EditorialTextField(
+                    value = uiState.time,
+                    onValueChange = {},
+                    label = "Time",
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Box(modifier = Modifier.matchParentSize().clickable { showTimePicker = true })
+            }
         }
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -139,12 +199,10 @@ fun AddEventScreen(
 
         Spacer(modifier = Modifier.height(48.dp))
 
-        // Tombol Simpan (Primary CTA)
+        // Tombol Simpan
         Button(
             onClick = viewModel::saveEvent,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
+            modifier = Modifier.fillMaxWidth().height(56.dp),
             enabled = !uiState.isSaving,
             colors = ButtonDefaults.buttonColors(
                 containerColor = Color(0xFF4956B4),

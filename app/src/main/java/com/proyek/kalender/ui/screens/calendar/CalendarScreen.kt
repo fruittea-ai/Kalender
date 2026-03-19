@@ -3,16 +3,17 @@ package com.proyek.kalender.ui.screens.calendar
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -21,107 +22,157 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.proyek.kalender.domain.model.Event
-import com.proyek.kalender.domain.model.EventCategory
+import com.proyek.kalender.ui.components.EditorialTopBar
 import com.proyek.kalender.ui.components.EventCard
-import java.util.UUID
+import com.proyek.kalender.ui.screens.schedule.ScheduleViewModel
 
 @Composable
 fun CalendarScreen(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    viewModel: ScheduleViewModel = hiltViewModel(), // Kita manfaatkan ScheduleViewModel untuk mengambil data
+    onEventClick: (String) -> Unit = {}
 ) {
-    // State to hold the currently selected date
-    var selectedDate by remember { mutableIntStateOf(14) }
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var selectedDate by remember { mutableIntStateOf(12) }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 24.dp)
-    ) {
-        Spacer(modifier = Modifier.height(40.dp))
+    Column(modifier = modifier.fillMaxSize()) {
+        EditorialTopBar()
 
-        // Month Header
-        Text(
-            text = "September 2026",
-            fontSize = 32.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color(0xFF302E56) // on_surface text
-        )
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // Days of Week Header
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp),
+            contentPadding = PaddingValues(bottom = 80.dp) // Ruang untuk FAB dan BottomNav
         ) {
-            val daysOfWeek = listOf("S", "M", "T", "W", "T", "F", "S")
-            daysOfWeek.forEach { day ->
-                Text(
-                    text = day,
-                    modifier = Modifier.weight(1f),
-                    textAlign = TextAlign.Center,
-                    fontSize = 14.sp,
-                    color = Color(0xFF302E56).copy(alpha = 0.5f),
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Calendar Grid
-        val daysInMonth = (1..30).toList()
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(7),
-            modifier = Modifier.fillMaxWidth(),
-            userScrollEnabled = false // Disable scroll to keep it as a static header component
-        ) {
-            // Empty slots for offset (assuming month starts on a Tuesday)
-            items(2) {
-                Box(modifier = Modifier.aspectRatio(1f))
-            }
-
-            items(daysInMonth) { date ->
-                val isSelected = date == selectedDate
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .aspectRatio(1f)
-                        .padding(4.dp)
-                        .clip(CircleShape)
-                        .background(if (isSelected) Color(0xFFE9E5FF) else Color.Transparent) // surface-container-high for active
-                        .clickable { selectedDate = date }
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+                // Header Bulan
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = date.toString(),
-                        fontSize = 16.sp,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                        color = if (isSelected) Color(0xFF4956B4) else Color(0xFF302E56)
+                    Text("March 2026", fontSize = 36.sp, fontWeight = FontWeight.Bold, color = Color(0xFF302E56))
+                    Row {
+                        IconButton(onClick = { /* Previous */ }, modifier = Modifier.size(24.dp)) {
+                            Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "Prev", tint = Color(0xFF302E56))
+                        }
+                        Spacer(modifier = Modifier.width(16.dp))
+                        IconButton(onClick = { /* Next */ }, modifier = Modifier.size(24.dp)) {
+                            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Next", tint = Color(0xFF302E56))
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                Text("12th Thursday · Focused Perspective", fontSize = 14.sp, color = Color(0xFF302E56).copy(alpha = 0.7f))
+                Spacer(modifier = Modifier.height(32.dp))
+
+                // Hari dalam seminggu
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    listOf("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN").forEach { day ->
+                        Text(
+                            text = day,
+                            modifier = Modifier.weight(1f),
+                            textAlign = TextAlign.Center,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFb1addd)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Grid Kalender Statis (Simulasi pixel-perfect)
+                CalendarGrid(selectedDate = selectedDate, onDateSelected = { selectedDate = it })
+
+                Spacer(modifier = Modifier.height(40.dp))
+
+                // Agenda Title
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Agenda for today", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF302E56))
+                    Text("${uiState.data.size} EVENTS", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4956B4), letterSpacing = 1.sp)
+                }
+                Spacer(modifier = Modifier.height(24.dp))
+            }
+
+            // Daftar Event
+            if (uiState.isLoading) {
+                item { CircularProgressIndicator(modifier = Modifier.fillMaxWidth().wrapContentWidth(Alignment.CenterHorizontally)) }
+            } else {
+                items(uiState.data, key = { it.id }) { event ->
+                    EventCard(
+                        title = event.title,
+                        time = event.time,
+                        location = event.location,
+                        backgroundColor = Color(event.category.colorHex),
+                        modifier = Modifier
+                            .padding(bottom = 16.dp)
+                            .clickable { onEventClick(event.id) }
                     )
                 }
             }
         }
+    }
+}
 
-        Spacer(modifier = Modifier.height(40.dp))
+@Composable
+private fun CalendarGrid(selectedDate: Int, onDateSelected: (Int) -> Unit) {
+    // Array 2D simulasi penanggalan
+    val calendarMatrix = listOf(
+        listOf(23, 24, 25, 26, 27, 28, 1),
+        listOf(2, 3, 4, 5, 6, 7, 8),
+        listOf(9, 10, 11, 12, 13, 14, 15),
+        listOf(16, 17, 18, 19, 20, 21, 22)
+    )
 
-        // Selected Date Events
-        Text(
-            text = "Events on Sept $selectedDate",
-            fontSize = 18.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = Color(0xFF302E56)
-        )
+    // Tanggal dengan simulasi acara (titik di bawah angka)
+    val eventDays = listOf(2, 5, 10, 18)
 
-        Spacer(modifier = Modifier.height(16.dp))
+    Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
+        calendarMatrix.forEachIndexed { rowIndex, week ->
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                week.forEach { date ->
+                    val isFaded = rowIndex == 0 && date > 20 // abu-abu untuk bulan lalu
+                    val isSelected = date == selectedDate && !isFaded
+                    val hasEvent = eventDays.contains(date) && !isFaded
 
-        // Dummy event mapped to the selected date
-        EventCard(
-            category = EventCategory.WORK.displayName,
-            title = "Design System Sync",
-            time = "10:00 — 11:30",
-            location = "Meet Room A",
-            backgroundColor = Color(EventCategory.WORK.colorHex)
-        )
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .weight(1f)
+                            .aspectRatio(1f)
+                            .clip(CircleShape)
+                            .background(if (isSelected) Color(0xFF4956B4) else Color.Transparent)
+                            .clickable(enabled = !isFaded) { onDateSelected(date) }
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = date.toString(),
+                                fontSize = 16.sp,
+                                color = when {
+                                    isSelected -> Color.White
+                                    isFaded -> Color(0xFF302E56).copy(alpha = 0.2f)
+                                    else -> Color(0xFF302E56)
+                                }
+                            )
+                            if (hasEvent) {
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    Box(modifier = Modifier.size(4.dp).clip(CircleShape).background(if (isSelected) Color.White else Color(0xFF006B64)))
+                                    if (date == 10) { // Contoh untuk banyak acara
+                                        Box(modifier = Modifier.size(4.dp).clip(CircleShape).background(if (isSelected) Color.White else Color(0xFF4956B4)))
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }

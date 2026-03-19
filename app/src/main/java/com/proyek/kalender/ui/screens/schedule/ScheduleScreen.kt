@@ -1,5 +1,6 @@
 package com.proyek.kalender.ui.screens.schedule
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -13,11 +14,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.proyek.kalender.domain.model.Event
+import com.proyek.kalender.ui.components.EditorialTopBar
 import com.proyek.kalender.ui.components.EventCard
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.compose.foundation.clickable
 
 @Composable
 fun ScheduleScreen(
@@ -27,35 +28,38 @@ fun ScheduleScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    Box(
-        modifier = modifier.fillMaxSize()
-    ) {
-        when {
-            uiState.isLoading -> {
-                CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.Center),
-                    color = Color(0xFF4956B4)
-                )
-            }
-            uiState.errorMessage != null -> {
-                Text(
-                    text = uiState.errorMessage ?: "An error occurred",
-                    modifier = Modifier.align(Alignment.Center),
-                    color = Color.Red
-                )
-            }
-            uiState.data.isEmpty() -> {
-                Text(
-                    text = "No upcoming events.",
-                    modifier = Modifier.align(Alignment.Center),
-                    color = Color(0xFF302E56)
-                )
-            }
-            else -> {
-                ScheduleListContent(
-                    events = uiState.data,
-                    onEventClick = onEventClick
-                )
+    Column(modifier = modifier.fillMaxSize()) {
+        // Menambahkan header seragam
+        EditorialTopBar()
+
+        Box(modifier = Modifier.fillMaxSize().weight(1f)) {
+            when {
+                uiState.isLoading -> {
+                    CircularProgressIndicator(
+                        modifier = Modifier.align(Alignment.Center),
+                        color = Color(0xFF4956B4)
+                    )
+                }
+                uiState.errorMessage != null -> {
+                    Text(
+                        text = uiState.errorMessage ?: "Terjadi kesalahan",
+                        modifier = Modifier.align(Alignment.Center),
+                        color = Color.Red
+                    )
+                }
+                uiState.data.isEmpty() -> {
+                    Text(
+                        text = "Belum ada jadwal acara.",
+                        modifier = Modifier.align(Alignment.Center),
+                        color = Color(0xFF302E56)
+                    )
+                }
+                else -> {
+                    ScheduleListContent(
+                        events = uiState.data,
+                        onEventClick = onEventClick
+                    )
+                }
             }
         }
     }
@@ -65,15 +69,16 @@ fun ScheduleScreen(
 private fun ScheduleListContent(
     events: List<Event>,
     modifier: Modifier = Modifier,
-    onEventClick: (String) -> Unit = {}
+    onEventClick: (String) -> Unit
 ) {
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 24.dp)
+            .padding(horizontal = 24.dp),
+        contentPadding = PaddingValues(bottom = 100.dp) // Padding ekstra agar daftar tidak tertutup Bottom Navigation
     ) {
         item {
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = "UPCOMING SCHEDULE",
                 fontSize = 12.sp,
@@ -81,7 +86,7 @@ private fun ScheduleListContent(
                 color = Color(0xFF4956B4)
             )
             Text(
-                text = "September",
+                text = "All Events",
                 fontSize = 32.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color(0xFF302E56)
@@ -94,18 +99,15 @@ private fun ScheduleListContent(
             key = { event -> event.id }
         ) { event ->
             EventCard(
-                category = event.category.displayName,
+                // Parameter category sudah dihapus di sini
                 title = event.title,
                 time = event.time,
                 location = event.location,
                 backgroundColor = Color(event.category.colorHex),
-                modifier = Modifier.padding(bottom = 16.dp)
+                modifier = Modifier
+                    .padding(bottom = 16.dp)
                     .clickable { onEventClick(event.id) }
             )
-        }
-
-        item {
-            Spacer(modifier = Modifier.height(60.dp))
         }
     }
 }
