@@ -27,6 +27,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.proyek.kalender.ui.components.EditorialTopBar
 import com.proyek.kalender.ui.components.EventCard
 import com.proyek.kalender.ui.screens.schedule.ScheduleViewModel
+import java.time.LocalDate
+import java.time.YearMonth
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @Composable
 fun CalendarScreen(
@@ -35,20 +39,30 @@ fun CalendarScreen(
     onEventClick: (String) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    var selectedDate by remember { mutableIntStateOf(19) } // Default hari ini (19)
 
-    // Filter dinamis: Hanya ambil acara yang tanggalnya memuat angka tanggal terpilih + "Mar"
-    // Contoh: "19 Mar 2026"
-    val paddedDate = selectedDate.toString().padStart(2, '0') // Ubah 5 jadi "05"
-    val filteredEvents = uiState.data.filter { event ->
-        event.date.startsWith("$paddedDate Mar") || event.date.startsWith("$selectedDate Mar")
-    }
+    // State dinamis untuk melacak bulan yang sedang dilihat dan tanggal yang diklik
+    var currentMonth by remember { mutableStateOf(YearMonth.now()) }
+    var selectedDate by remember { mutableStateOf(LocalDate.now()) }
 
-    // Ekstrak secara otomatis tanggal berapa saja yang punya acara di bulan ini
-    val eventDays = uiState.data.mapNotNull { event ->
-        if (event.date.contains("Mar")) {
-            event.date.take(2).trim().toIntOrNull() // Mengambil 2 karakter pertama (contoh: "19")
-        } else null
+    // Formatter untuk menampilkan teks di layar
+    val monthHeaderFormatter = DateTimeFormatter.ofPattern("MMMM yyyy", Locale.getDefault())
+    val monthHeaderStr = currentMonth.format(monthHeaderFormatter) // Contoh: "March 2026"
+
+    // Formatter untuk mencocokkan format "dd MMM yyyy" yang disimpan di database
+    val dbDateFormatter = DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.getDefault())
+    val selectedDateStr = selectedDate.format(dbDateFormatter)
+
+    // Filter event berdasarkan tanggal yang persis dipilih
+    val filteredEvents = uiState.data.filter { it.date == selectedDateStr }
+
+    // Ekstrak hari apa saja di bulan yang sedang DILIHAT yang memiliki acara
+    val eventDaysInCurrentMonth = uiState.data.mapNotNull { event ->
+        try {
+            val eventDate = LocalDate.parse(event.date, dbDateFormatter)
+            if (YearMonth.from(eventDate) == currentMonth) eventDate.dayOfMonth else null
+        } catch (e: Exception) {
+            null
+        }
     }.toSet()
 
     Column(modifier = modifier.fillMaxSize()) {
@@ -65,13 +79,19 @@ fun CalendarScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("March 2026", fontSize = 36.sp, fontWeight = FontWeight.Bold, color = Color(0xFF302E56))
+                    Text(text = monthHeaderStr, fontSize = 36.sp, fontWeight = FontWeight.Bold, color = Color(0xFF302E56))
                     Row {
-                        IconButton(onClick = { /* Implementasi bulan nanti */ }, modifier = Modifier.size(24.dp)) {
+                        IconButton(
+                            onClick = { currentMonth = currentMonth.minusMonths(1) }, // Mundur 1 bulan
+                            modifier = Modifier.size(24.dp)
+                        ) {
                             Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "Prev", tint = Color(0xFF302E56))
                         }
                         Spacer(modifier = Modifier.width(16.dp))
-                        IconButton(onClick = { /* Implementasi bulan nanti */ }, modifier = Modifier.size(24.dp)) {
+                        IconButton(
+                            onClick = { currentMonth = currentMonth.plusMonths(1) }, // Maju 1 bulan
+                            modifier = Modifier.size(24.dp)
+                        ) {
                             Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Next", tint = Color(0xFF302E56))
                         }
                     }
@@ -88,11 +108,16 @@ fun CalendarScreen(
                 }
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Render Kalender dengan data titik yang dinamis
-                CalendarGrid(
+                // Render Kalender Dinamis
+                DynamicCalendarGrid(
+                    currentMonth = currentMonth,
                     selectedDate = selectedDate,
-                    eventDays = eventDays,
-                    onDateSelected = { selectedDate = it }
+                    eventDays = eventDaysInCurrentMonth,
+                    onDateSelected = { date ->
+                        selectedDate = date
+                        // Opsional: jika mengklik tanggal dari bulan lalu/depan yang pudar, otomatis pindah bulan
+                        currentMonth = YearMonth.from(date)
+                    }
                 )
 
                 Spacer(modifier = Modifier.height(40.dp))
@@ -102,13 +127,12 @@ fun CalendarScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Events for Mar $selectedDate", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF302E56))
+                    Text("Events for ${selectedDate.dayOfMonth}", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF302E56))
                     Text("${filteredEvents.size} EVENTS", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4956B4), letterSpacing = 1.sp)
                 }
                 Spacer(modifier = Modifier.height(24.dp))
             }
 
-            // Tampilkan hanya acara yang difilter
             if (uiState.isLoading) {
                 item { CircularProgressIndicator(modifier = Modifier.fillMaxWidth().wrapContentWidth(Alignment.CenterHorizontally)) }
             } else if (filteredEvents.isEmpty()) {
@@ -138,23 +162,49 @@ fun CalendarScreen(
 }
 
 @Composable
-private fun CalendarGrid(selectedDate: Int, eventDays: Set<Int>, onDateSelected: (Int) -> Unit) {
-    val calendarMatrix = listOf(
-        listOf(23, 24, 25, 26, 27, 28, 1),
-        listOf(2, 3, 4, 5, 6, 7, 8),
-        listOf(9, 10, 11, 12, 13, 14, 15),
-        listOf(16, 17, 18, 19, 20, 21, 22),
-        listOf(23, 24, 25, 26, 27, 28, 29),
-        listOf(30, 31, 1, 2, 3, 4, 5)
-    )
+private fun DynamicCalendarGrid(
+    currentMonth: YearMonth,
+    selectedDate: LocalDate,
+    eventDays: Set<Int>,
+    onDateSelected: (LocalDate) -> Unit
+) {
+    // Logika pembuatan matriks kalender
+    val daysInMonth = currentMonth.lengthOfMonth()
+    val firstDayOfMonth = currentMonth.atDay(1)
+    val startDayOfWeek = firstDayOfMonth.dayOfWeek.value // Senin = 1, Minggu = 7
+
+    // Total slot yang dibutuhkan untuk 6 baris (42 slot)
+    val calendarDays = mutableListOf<LocalDate>()
+
+    // 1. Masukkan hari-hari pudar dari bulan sebelumnya
+    val previousMonth = currentMonth.minusMonths(1)
+    val daysFromPrevMonth = startDayOfWeek - 1
+    for (i in daysFromPrevMonth downTo 1) {
+        calendarDays.add(previousMonth.atEndOfMonth().minusDays((i - 1).toLong()))
+    }
+
+    // 2. Masukkan hari-hari bulan ini
+    for (i in 1..daysInMonth) {
+        calendarDays.add(currentMonth.atDay(i))
+    }
+
+    // 3. Masukkan hari-hari pudar dari bulan selanjutnya hingga menggenapi kelipatan 7
+    val nextMonth = currentMonth.plusMonths(1)
+    var nextMonthDaysAdded = 1
+    while (calendarDays.size % 7 != 0) {
+        calendarDays.add(nextMonth.atDay(nextMonthDaysAdded++))
+    }
+
+    // Bagi menjadi potongan per minggu (7 hari)
+    val weeks = calendarDays.chunked(7)
 
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        calendarMatrix.forEachIndexed { rowIndex, week ->
+        weeks.forEach { week ->
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 week.forEach { date ->
-                    val isFaded = (rowIndex == 0 && date > 20) || (rowIndex >= 4 && date < 15)
-                    val isSelected = date == selectedDate && !isFaded
-                    val hasEvent = eventDays.contains(date) && !isFaded
+                    val isCurrentMonth = YearMonth.from(date) == currentMonth
+                    val isSelected = date == selectedDate
+                    val hasEvent = isCurrentMonth && eventDays.contains(date.dayOfMonth)
 
                     Box(
                         contentAlignment = Alignment.Center,
@@ -163,15 +213,15 @@ private fun CalendarGrid(selectedDate: Int, eventDays: Set<Int>, onDateSelected:
                             .aspectRatio(1f)
                             .clip(CircleShape)
                             .background(if (isSelected) Color(0xFF4956B4) else Color.Transparent)
-                            .clickable(enabled = !isFaded) { onDateSelected(date) }
+                            .clickable { onDateSelected(date) }
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
-                                text = date.toString(),
+                                text = date.dayOfMonth.toString(),
                                 fontSize = 16.sp,
                                 color = when {
                                     isSelected -> Color.White
-                                    isFaded -> Color(0xFF302E56).copy(alpha = 0.2f)
+                                    !isCurrentMonth -> Color(0xFF302E56).copy(alpha = 0.2f)
                                     else -> Color(0xFF302E56)
                                 }
                             )
