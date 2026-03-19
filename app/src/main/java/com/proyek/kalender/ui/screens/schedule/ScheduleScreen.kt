@@ -1,5 +1,16 @@
 package com.proyek.kalender.ui.screens.schedule
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.rememberSwipeToDismissBoxState
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -57,6 +68,7 @@ fun ScheduleScreen(
                 else -> {
                     ScheduleListContent(
                         events = uiState.data,
+                        viewModel = viewModel,
                         onEventClick = onEventClick
                     )
                 }
@@ -65,17 +77,19 @@ fun ScheduleScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ScheduleListContent(
     events: List<Event>,
     modifier: Modifier = Modifier,
+    viewModel: ScheduleViewModel, // Kita butuh viewModel di sini untuk memanggil deleteEvent
     onEventClick: (String) -> Unit
 ) {
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
             .padding(horizontal = 24.dp),
-        contentPadding = PaddingValues(bottom = 100.dp) // Padding ekstra agar daftar tidak tertutup Bottom Navigation
+        contentPadding = PaddingValues(bottom = 100.dp)
     ) {
         item {
             Spacer(modifier = Modifier.height(16.dp))
@@ -98,16 +112,59 @@ private fun ScheduleListContent(
             items = events,
             key = { event -> event.id }
         ) { event ->
-            EventCard(
-                // Parameter category sudah dihapus di sini
-                title = event.title,
-                time = event.time,
-                location = event.location,
-                backgroundColor = Color(event.category.colorHex),
-                modifier = Modifier
-                    .padding(bottom = 16.dp)
-                    .clickable { onEventClick(event.id) }
+            // State untuk mengontrol aksi geser
+            val dismissState = rememberSwipeToDismissBoxState(
+                confirmValueChange = { dismissValue ->
+                    if (dismissValue == SwipeToDismissBoxValue.EndToStart) {
+                        // Jika digeser penuh dari kanan ke kiri, hapus event
+                        viewModel.deleteEvent(event.id)
+                        true
+                    } else {
+                        false
+                    }
+                }
             )
+
+            SwipeToDismissBox(
+                state = dismissState,
+                modifier = Modifier.padding(bottom = 16.dp), // Pindahkan padding ke pembungkus luar
+                enableDismissFromStartToEnd = false, // Matikan geser ke kanan
+                backgroundContent = {
+                    val color by animateColorAsState(
+                        targetValue = if (dismissState.targetValue == SwipeToDismissBoxValue.EndToStart) {
+                            Color(0xFFFF5252) // Merah error saat digeser
+                        } else {
+                            Color.Transparent
+                        },
+                        label = "color_animation"
+                    )
+
+                    // Latar belakang yang terlihat saat kartu digeser
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(24.dp))
+                            .background(color)
+                            .padding(end = 24.dp),
+                        contentAlignment = Alignment.CenterEnd
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Delete Event",
+                            tint = Color.White
+                        )
+                    }
+                }
+            ) {
+                // Kartu asli yang ada di depan
+                EventCard(
+                    title = event.title,
+                    time = event.time,
+                    location = event.location,
+                    backgroundColor = Color(event.category.colorHex),
+                    modifier = Modifier.clickable { onEventClick(event.id) }
+                )
+            }
         }
     }
 }

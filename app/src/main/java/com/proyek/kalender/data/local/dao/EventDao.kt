@@ -20,4 +20,7 @@ interface EventDao {
 
     @Query("UPDATE events SET isCompleted = 1 WHERE id = :eventId")
     suspend fun markEventAsCompleted(eventId: String)
+
+    @Query("DELETE FROM events WHERE id = :eventId")
+    suspend fun deleteEvent(eventId: String)
 }

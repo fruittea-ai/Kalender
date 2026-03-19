@@ -30,6 +30,10 @@ class EventRepositoryImpl(
         dao.markEventAsCompleted(id)
     }
 
+    override suspend fun deleteEvent(id: String) {
+        dao.deleteEvent(id)
+    }
+
     // Fungsi ekstensi (Extension Functions) untuk konversi data
     private fun EventEntity.toDomainModel(): Event {
         return Event(
