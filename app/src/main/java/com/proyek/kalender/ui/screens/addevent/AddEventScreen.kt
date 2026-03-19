@@ -32,11 +32,9 @@ fun AddEventScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val scrollState = rememberScrollState()
 
-    // State untuk mengontrol visibilitas dialog
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
 
-    // State bawaan Material 3 untuk picker
     val datePickerState = rememberDatePickerState()
     val timePickerState = rememberTimePickerState()
 

@@ -1,7 +1,6 @@
 package com.proyek.kalender.ui.navigation
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -36,7 +35,6 @@ fun AppNavigation(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: Screen.Schedule.route
 
-    // Sembunyikan bottom bar dan FAB di layar detail & form
     val showBottomNav = currentRoute == Screen.Schedule.route || currentRoute == Screen.Calendar.route
 
     Scaffold(
@@ -72,7 +70,7 @@ fun AppNavigation(
         Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
             NavHost(
                 navController = navController,
-                startDestination = Screen.Calendar.route // Set kalender sebagai home
+                startDestination = Screen.Calendar.route
             ) {
                 composable(route = Screen.Schedule.route) {
                     ScheduleScreen(

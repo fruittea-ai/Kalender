@@ -46,7 +46,6 @@ fun EditorialTopBar(modifier: Modifier = Modifier) {
             )
         }
 
-        // Placeholder untuk Avatar (Ganti dengan Image asli jika ada)
         Box(
             modifier = Modifier
                 .size(36.dp)

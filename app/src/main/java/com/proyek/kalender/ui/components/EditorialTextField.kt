@@ -22,13 +22,11 @@ fun EditorialTextField(
     label: String,
     modifier: Modifier = Modifier
 ) {
-    // Mendeteksi apakah text field sedang diklik/fokus
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
 
-    // Aturan warna dari DESIGN.md
-    val backgroundColor = if (isFocused) Color(0xFFFFFFFF) else Color(0xFFF6F2FF) // surface_container_lowest vs surface_container_low
-    val borderColor = if (isFocused) Color(0xFF4956B4) else Color.Transparent // Primary Indigo untuk Ghost Border
+    val backgroundColor = if (isFocused) Color(0xFFFFFFFF) else Color(0xFFF6F2FF)
+    val borderColor = if (isFocused) Color(0xFF4956B4) else Color.Transparent
 
     TextField(
         value = value,
@@ -46,7 +44,7 @@ fun EditorialTextField(
         colors = TextFieldDefaults.colors(
             focusedContainerColor = backgroundColor,
             unfocusedContainerColor = backgroundColor,
-            focusedIndicatorColor = Color.Transparent, // Menghilangkan garis bawah default Material
+            focusedIndicatorColor = Color.Transparent,
             unfocusedIndicatorColor = Color.Transparent,
             focusedTextColor = Color(0xFF302E56),
             unfocusedTextColor = Color(0xFF302E56),

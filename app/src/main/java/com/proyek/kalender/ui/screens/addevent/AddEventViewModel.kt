@@ -51,7 +51,6 @@ class AddEventViewModel @Inject constructor(
             _uiState.update { it.copy(isSaving = true, errorMessage = null) }
 
             try {
-                // Membuat objek Event baru dengan ID unik (UUID)
                 val newEvent = Event(
                     id = UUID.randomUUID().toString(),
                     title = currentState.title,
@@ -61,7 +60,6 @@ class AddEventViewModel @Inject constructor(
                     category = currentState.selectedCategory
                 )
 
-                // Menyimpan ke Room Database
                 repository.insertEvent(newEvent)
 
                 _uiState.update {
