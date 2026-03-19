@@ -4,90 +4,96 @@ import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import com.proyek.kalender.R // Pastikan ini mengarah ke package aplikasimu
 
-val BackgroundSurface = Color(0xFFFCF8FF) // Latar belakang utama
+// 1. Definisi Warna Kustom (Pertahankan milikmu)
+val BackgroundSurface = Color(0xFFFCF8FF)
 val SurfaceContainerLow = Color(0xFFF6F2FF)
 val PrimaryIndigo = Color(0xFF4956B4)
-val OnSurfaceText = Color(0xFF302E56) // Pengganti warna hitam
-val WorkMint = Color(0xFF8EF4E9) // Warna acara kerja
-val PersonalOrange = Color(0xFFFFA184) // Warna acara personal
+val OnSurfaceText = Color(0xFF302E56)
+val WorkMint = Color(0xFF8EF4E9)
+val PersonalOrange = Color(0xFFFFA184)
 val DeepWorkPurple = Color(0xFFE9E5FF)
 
+// 2. Mendaftarkan Font Manrope (Pastikan file ada di res/font/)
+val ManropeFontFamily = FontFamily(
+    Font(R.font.manrope_regular, FontWeight.Normal),
+    Font(R.font.manrope_semibold, FontWeight.SemiBold),
+    Font(R.font.manrope_bold, FontWeight.Bold)
+)
+
+// 3. Tipografi dengan Font Manrope (Memperbaiki bug sebelumnya)
 val KalenderTypography = Typography(
     headlineLarge = TextStyle(
-        fontFamily = FontFamily.SansSerif, // Ganti dengan Manrope di project aslimu
+        fontFamily = ManropeFontFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 32.sp,
         color = OnSurfaceText
     ),
     titleMedium = TextStyle(
-        fontFamily = FontFamily.SansSerif, // Ganti dengan Manrope
+        fontFamily = ManropeFontFamily,
         fontWeight = FontWeight.SemiBold,
         fontSize = 18.sp,
         color = OnSurfaceText
     ),
     bodyMedium = TextStyle(
-        fontFamily = FontFamily.SansSerif, // Ganti dengan Inter
+        fontFamily = ManropeFontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 14.sp,
         color = OnSurfaceText
     )
 )
 
-private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
-)
-
+// 4. Memasukkan warnamu ke dalam skema bawaan Material 3
 private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
+    primary = PrimaryIndigo,
+    background = BackgroundSurface,
+    surface = BackgroundSurface,
     onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+    onBackground = OnSurfaceText,
+    onSurface = OnSurfaceText
 )
 
 @Composable
 fun KalenderTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
+    // Kita paksa menggunakan LightColorScheme agar desain "Editorial" selalu konsisten
+    // (Warna dinamis Android 12+ dimatikan agar desain tidak ditimpa warna wallpaper HP)
+    val colorScheme = LightColorScheme
 
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        SideEffect {
+            val window = (view.context as Activity).window
+
+            // 5. Konfigurasi Edge-to-Edge (Status Bar Transparan)
+            window.statusBarColor = Color.Transparent.toArgb()
+            window.navigationBarColor = Color.Transparent.toArgb()
+
+            // Membuat ikon status bar (baterai/jam/sinyal) menjadi warna gelap
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = true
+            WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = true
+        }
     }
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = Typography,
+        typography = KalenderTypography, // DILURUSKAN: Menggunakan KalenderTypography milikmu
         content = content
     )
 }
